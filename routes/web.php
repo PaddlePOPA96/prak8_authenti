@@ -1,44 +1,48 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\EmployeeController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
-// ...
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
 
-Route::get('/', function () {
-    return redirect()->route('login');
+// Route::get('/', function () {
+//     return view('welcome');
+// });
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+    Route::resource('employees', EmployeeController::class);
+    Route::get('profile', ProfileController::class)->name('profile');
+    Route::get('download-file/{employeeId}', [EmployeeController::class, 'downloadFile'])->name('employees.downloadFile');
+    Route::get('getEmployees', [EmployeeController::class, 'getData'])->name('employees.getData');
+    Route::get('exportExcel', [EmployeeController::class, 'exportExcel'])->name('employees.exportExcel');
+    Route::get('exportPdf', [EmployeeController::class, 'exportPdf'])->name('employees.exportPdf');
 });
 
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login');
-
 Route::get('home', [HomeController::class, 'index'])->name('home');
-
-Route::get('profile', [ProfileController::class, 'index'])->name('profile');
-
-Route::resource('employees', EmployeeController::class);
-Route::post('/employees/upload', [EmployeeController::class, 'uploadFile'])->name('employees.upload');
-
-Auth::routes();
-
-Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
-    ->middleware('auth')
-    ->name('logout');
-
-// Route untuk download file
-Route::get('download-file/{employeeId}', [EmployeeController::class, 'downloadFile'])->name('employees.downloadFile');
-
-// Route untuk menyimpan dan mengambil file
-Route::get('/public-disk', function() {
+Route::get('/local-disk', function () {
+    Storage::disk('local')->put('local-example.txt', 'This is local example content');
+    return asset('storage/local-example.txt');
+});
+Route::get('/public-disk', function () {
     Storage::disk('public')->put('public-example.txt', 'This is public example content');
     return asset('storage/public-example.txt');
 });
-
-Route::get('/retrieve-local-file', function() {
+Route::get('/retrieve-local-file', function () {
     if (Storage::disk('local')->exists('local-example.txt')) {
         $contents = Storage::disk('local')->get('local-example.txt');
     } else {
@@ -47,7 +51,6 @@ Route::get('/retrieve-local-file', function() {
 
     return $contents;
 });
-
 Route::get('/retrieve-public-file', function() {
     if (Storage::disk('public')->exists('public-example.txt')) {
         $contents = Storage::disk('public')->get('public-example.txt');
@@ -57,11 +60,9 @@ Route::get('/retrieve-public-file', function() {
 
     return $contents;
 });
-
 Route::get('/download-local-file', function() {
     return Storage::download('local-example.txt', 'local file');
 });
-
 Route::get('/download-public-file', function() {
     return Storage::download('public/public-example.txt', 'public file');
 });
@@ -82,7 +83,6 @@ Route::get('/file-path', function() {
     return $path;
 });
 
-// Form route
 Route::get('/upload-example', function() {
     return view('upload_example');
 });
@@ -92,7 +92,6 @@ Route::post('/upload-example', function(Request $request) {
     return $path;
 })->name('upload-example');
 
-// Hapus file
 Route::get('/delete-local-file', function(Request $request) {
     Storage::disk('local')->delete('local-example.txt');
     return 'Deleted';
@@ -104,3 +103,6 @@ Route::get('/delete-public-file', function(Request $request) {
 });
 
 Route::put('/data/{id}', [DataController::class, 'update'])->name('data.update');
+
+
+Auth::routes();
